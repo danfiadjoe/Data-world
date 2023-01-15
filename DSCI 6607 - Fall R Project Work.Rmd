@@ -1,0 +1,397 @@
+---
+title: "DSCI 6607 - Fall R Project Work"
+author: "Daniel Fiadjoe"
+date: "2022-12-10"
+output:
+  html_document: default
+  pdf_document: 
+    keep_tex: yes
+---
+
+***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+# INTRODUCTION
+The purpose of this project is to do a comprehensive work on a provided wine data set. The work will involve application of correct statistical methods on the data and complete analysis of the data. It would also include correct and adequate interpretation and discussion on data, graphs, tables and results. 
+The following areas were covered during the project work:
+1. Importing wine data into R
+2. Review of data in the text file
+3. Cleaning of the data
+4. Exploratory of data through visualization and 
+5. Drawing insights from the data.
+
+Relevant Information:
+These data are the results of a chemical analysis of wines grown in the same region in Italy but derived from three different cultivars. The analysis determined the quantities of 13 constituents found in each of the three types of wines. 
+The attributes are 
+ 	1) Alcohol
+ 	2) Malic acid
+ 	3) Ash
+	4) Alcalinity of ash  
+ 	5) Magnesium
+	6) Total phenols
+ 	7) Flavanoids
+ 	8) Nonflavanoid phenols
+ 	9) Proanthocyanins
+	10) Color intensity
+ 	11) Hue
+ 	12) OD280/OD315 of diluted wines
+ 	13) Proline            
+Number of Instances of the variable Class.
+  class 1 59
+	class 2 71
+	class 3 48
+There are 13 predictor variables and 1 target variable.
+- 18 missing data.
+- 1 misleading data and was treated as an outlier.
+
+
+## Loading the libraries
+
+```{r}
+library(tidyverse)
+
+library(ggrepel)
+
+library(ggplot2)
+
+library(corrplot)
+
+library(tidyr)
+
+library(gridExtra)
+
+library(MASS)
+
+library(olsrr)
+
+library(stats)
+
+
+library(dplyr)
+
+library(GGally)
+
+
+library(psych)
+```
+
+
+
+Importing of wine data in R
+```{r }
+# Load data into R
+initial_data <- read.table("wine.txt", sep = ",", header = FALSE)
+initial_data
+
+```
+
+View data
+```{r}
+# View the head of data
+head(initial_data)
+
+# View the tail of data
+tail(initial_data)
+
+```
+
+Shape of the data
+```{r}
+dim(initial_data)
+
+```
+There are 178 rows and columns in the data. 
+
+## DATA PRE-PROCESSING
+Data pre-processing involves the following:
+1. Data cleaning
+2. Data integration
+3. Data reduction
+4. Data transformation
+For this this project, the focus will be mainly be on data cleaning. The framework for data cleaning are:
+1. Understand the data structure.
+2. Validate the fields and values.
+3. Interpret statistics.
+4. Visualize the data.
+These tasks are really important before the data is used for the model building and other requirements of the business or institution.
+This section will be treating missing data, outliers treatments, and plotting of graphs with statistical analysis.
+
+# Summary of data types and variable names.
+```{r}
+str(initial_data)
+
+```
+This section gives us a view of the data types in the data set. A summary of the data type is below:
+i. Integer (int) - 2
+ii. Character  - 4
+iii. Numeric - 8
+Total - 14.
+Also the variables of the data came with default names which were changed to the actually names provided in the additional text file.
+
+
+Statistical summary of data
+```{r}
+summary(initial_data)
+
+```
+Above is the statistical summary of variables in the data set. It gives the mean, median, maximum, minimum, 1st quartile, and 3rd quartile information for all variables in the data set. A view of this data shows that there could be possible outliers. Also the whole data set is numeric so would be changing the character data type to numeric data. The variable V11 shows misleading value of 9899999.
+
+Assign variable name to all the variables.
+```{r}
+# Rename column names
+colnames(initial_data) <- c("Alcohol", "Malic_acid", "Ash", "Alcalinity_of_ash", "Magnesium", "Total_phenols", "Flavanoids", "Nonflavanoid_phenols", "Proanthocyanins", "Color_intensity", "Hue", "12", "OD280_OD315_of_diluted_wines", "Proline")
+# Display the column names.
+colnames(initial_data)
+
+summary(initial_data)
+```
+The summary above display the change in variable name which was successful.
+
+
+Change data type from character to numeric so that 
+```{r}
+initial_data$Ash <- as.numeric(initial_data$Ash)
+initial_data$Magnesium <- as.numeric(initial_data$Magnesium)
+initial_data$Total_phenols <- as.integer(initial_data$Total_phenols)
+initial_data$Color_intensity <- as.numeric(initial_data$Color_intensity)
+
+str(initial_data)
+```
+The above confirm the changing of the character data type to numeric data type.
+
+
+Working on missing data.
+```{r}
+# Checking for missing data
+initial_data_miss <- sum(is.na(initial_data))
+cat (".", "\n")
+cat ("Missing data in this data set is : ", initial_data_miss)
+
+```
+
+
+```{r}
+# Identify columns with missing data
+missing_cols <- colnames(initial_data)[apply(is.na(initial_data), 2, any)]
+missing_cols
+
+```
+Above is the columns that have missing data.
+
+
+Removing of missing identified missing data in the data set.
+```{r}
+# Replace the missing data in the integer variable 'Total_phenols' with median of that column.
+initial_data$Total_phenols[is.na(initial_data$Total_phenols)]<- median(initial_data$Total_phenols,na.rm = TRUE)
+initial_data$Ash[is.na(initial_data$Ash)]<- mean(initial_data$Ash,na.rm = TRUE)
+initial_data$Alcalinity_of_ash[is.na(initial_data$Alcalinity_of_ash)]<- mean(initial_data$Alcalinity_of_ash,na.rm = TRUE)
+initial_data$Magnesium[is.na(initial_data$Magnesium)]<- mean(initial_data$Magnesium,na.rm = TRUE)
+initial_data$Flavanoids[is.na(initial_data$Flavanoids)]<- mean(initial_data$Flavanoids,na.rm = TRUE)
+initial_data$Nonflavanoid_phenols[is.na(initial_data$Nonflavanoid_phenols)]<- mean(initial_data$Nonflavanoid_phenols,na.rm = TRUE)
+initial_data$Proanthocyanins[is.na(initial_data$Proanthocyanins)]<- mean(initial_data$Proanthocyanins,na.rm = TRUE)
+initial_data$Color_intensity[is.na(initial_data$Color_intensity)]<- mean(initial_data$Color_intensity,na.rm = TRUE)
+initial_data$OD280_OD315_of_diluted_wines[is.na(initial_data$OD280_OD315_of_diluted_wines)]<- mean(initial_data$OD280_OD315_of_diluted_wines,na.rm = TRUE)
+
+```
+
+
+Confirming that the missing data have been treated with replace with mean and median. The miss leading data (9899999) will be treated with the outlier removal.
+```{r}
+# Checking for missing data
+initial_data_miss <- sum(is.na(initial_data))
+cat (".", "\n")
+cat ("Missing data in this data set is : ", initial_data_miss)
+
+```
+
+#### Identification of outliers and treatment
+```{r}
+outliner_data = par(mfrow = c(1,2))
+for ( i in 1:14 ) 
+ {
+  boxplot(initial_data[[i]], col = "green")
+  mtext(names(initial_data)[i], cex = 0.8, side = 1, line = 2)
+ }
+par(outliner_data)
+
+```
+The plots above displays the boxplot for the 14 variables. The following variables have outliers in them:
+1. Ash
+2. Alcalinity of ash
+3. Magnesium
+4. Total phenols
+5. Color intensity
+6. Hue
+7. OD280/OD315 of diluted wines
+There is no outlier in the target variable, Alcohol.
+
+```{r}
+data_outliers = c()
+for ( i in 1:14 ) 
+  {
+  stats = boxplot.stats(initial_data[[i]])$stats
+  b_outlier_rows = which(initial_data[[i]] < stats[1])
+  t_outlier_rows = which(initial_data[[i]] > stats[5])
+  data_outliers = c(data_outliers , t_outlier_rows[ !t_outlier_rows %in% data_outliers ] )
+  data_outliers = c(data_outliers , b_outlier_rows[ !b_outlier_rows %in% data_outliers ] )
+}
+cat("The outlier observations are:", "\n")
+data_outliers
+
+
+
+```
+
+
+Application of Cook's distance to detect influential observations.
+```{r}
+mod_cook = lm(Alcohol ~ ., data = initial_data)
+sd_1 = cooks.distance(mod_cook)
+plot(sd_1, pch = "*", cex = 2, main = "Influential Obs by Cooks distance")
+abline(h = 4*mean(sd_1, na.rm = T), col = "red")
+
+```
+
+
+Based on the Cook's distance to detect influential observations, the outliers would be removed including the 1 misleading value.
+```{r}
+
+c_outliers = as.numeric(rownames(initial_data[sd_1 > 4 * mean(sd_1, na.rm=T), ]))
+data_outliers = c(data_outliers , c_outliers[ !c_outliers %in% data_outliers ] )
+
+# New without outliers now called data.
+data = initial_data[-data_outliers, ]
+
+```
+
+
+Summary of statistics to show outliers have been removed from the data. The data is now ready for additional visualizations. 
+```{r}
+# Print summary of new data.
+summary(data)
+
+# Print dimension of data
+dim(data)
+
+```
+
+
+
+## Exploratory data analysis 
+
+This section will deal with univariate, bivariate and multivariate analysis of the data set. 
+
+The diagrams below are initial histogram of the variables with the mean value of each variable.
+```{r}
+dist_var = par(mfrow = c(1,2))
+for ( i in 2:14 ) 
+  {
+  truehist(data[[i]], xlab = names(data)[i], col = 'lightgreen', main = paste("Average =", signif(mean(data[[i]]),3)))
+ }
+
+```
+
+Observations:
+1. These variables were skewed to the right - Ash, Total Phenols, Proanthocyanins, Hue and Proline.
+2. The rest of the data are skewed to the left per the display from the diagram.
+
+
+A plot of the target (Alcohol) variable. 
+```{r}
+ggplot(initial_data, aes(x = Alcohol)) +
+  geom_histogram(bins = 10, position = 'identity', alpha = 0.4, fill = "blue") + labs(title = "Histogram of Alcohol variable") + geom_text(aes(label = scales::percent(..count../sum(..count..))), stat = 'count', vjust = -0.5)
+
+```
+The target variable has 3 classes and distributed by this percentages:
+i. Class 1 - 33.1%
+ii. Class 2 - 39.9%
+iii. Class 3 - 27%
+
+Display of pairplot of all variables.
+```{r}
+pairs(data)
+
+
+```
+The pairplot above is not very visible for interpretation so will create a ggplot for visibility and clarity.
+
+
+Converting target variable Alcohol from integer to character data type to be able to plot.
+```{r}
+
+data$Alcohol <- as.character(data$Alcohol)
+
+```
+
+
+```{r}
+
+ggpairs(data, columns = 2:5, aes(color = Alcohol, alpha = 0.5), upper = list(continuous = wrap("cor", size = 4)))
+
+
+```
+
+Observations:
+The data in the 4 variables are evenly distributed.
+
+```{r}
+ggpairs(data, columns = 6:9, aes(color = Alcohol, alpha = 0.5), upper = list(continuous = wrap("cor", size = 4)))
+
+
+```
+
+Observations:
+The data in the 4 variables are all not evenly distributed.
+
+```{r}
+ggpairs(data, columns = 10:14, aes(color = Alcohol, alpha = 0.5), upper = list(continuous = wrap("cor", size = 3)))
+```
+
+
+Displaying correlation between the variables in the data set.
+```{r}
+
+data$Alcohol <- as.integer(data$Alcohol)
+
+cor(data)
+
+corrplot(cor(data))
+
+
+```
+From the diagram above, the following variables have good correlation:
+1. Flavanoids
+2. Nonflavanoid_phenols
+3. OD280_OD315_of_diluted_wines 
+4. Proline.
+These variables could be considered for future data processing activities. Some of the variables also had negative correlation. 
+
+
+```{r}
+
+```
+
+# CONCLUSION
+
+This project has been an extensive exercise of data analysis and visualization of the wine data provided. The following key observations was made during the data analysis:
+1. Most of the time was spent on cleaning the data and visualizing the data.
+2. The identified missing data were successfully treated. This was done by replacing them with the mean (numeric data type) or median (for integer data type) of the variable. 
+3. Identified outliers were successfully treated or removed.
+3. In terms of correlation, 4 key variables were identified to be relevant to the data and could considered for processing in future.
+4. Majority of the most of the data had their mean and median being closed to each other.
+After the extensive cleaning of these data and analysis, we can firm that this wine data is relevant and can be use for further research work and statistical or machine learning model building. 
+
+
+
+
